@@ -120,16 +120,15 @@ exports.getAllInvestments = catchAsync(async (req, res, next) => {
 exports.handleInvestments = catchAsync(async (req, res, next) => {
     const investments = await Investment.findAll({
         where: { userId: req.user.id, status: 'active' },
-        include: [{ model: Plan }]
+        include: [{ model: Plan, as: 'plan' }]
     });
-
     const wallet = await Wallet.findOne({ where: { userId: req.user.id } });
 
     let totalProfit = 0;
     let totalBalance = 0;
 
     for (const investment of investments) {
-        const plan = investment.Plan;
+        const plan = investment.plan;
 
         const today = new Date();
         const lastUp = new Date(investment.updatedAt);
