@@ -1,115 +1,135 @@
 const catchAsync = require("../utils/catchAsync");
-const Investment = require('../mongoose_models/investment')
-const Plan = require('../mongoose_models/plan');
-const Wallet = require('../mongoose_models/wallet');
 const AppError = require("../utils/apError");
-const User = require('../mongoose_models/user')
 const Email = require("../utils/email");
+const { Wallet, User, Investment, Plan } = require('./../models');
 
 
+exports.makeInvestment = catchAsync(async (req, res, next) => {
+    // Assign the user ID if not provided
+    if (!req.body.userId) req.body.userId = req.user.id;
 
-exports.makeInvestment = catchAsync(async(req, res, next)=>{
-    // Assign the user ID if it's not provided in the body (for nested routes)
-    if (!req.body.user) req.body.user = req.user._id;
-    const plan = await Plan.findById(req.body.plan);
-    const wallet = await Wallet.findOne({user:req.body.user});
+    const { userId, planId, amount } = req.body;
 
-    if(!plan){
-        return next(new AppError("Missing Plan", {plan:"No plan was found with that ID"}, 404))
+    const plan = await Plan.findByPk(planId);
+    if (!plan) {
+        return next(new AppError("Missing Plan", { plan: "No plan was found with that ID" }, 404));
     }
 
-    if(plan.minDeposit > req.body.amount){
-        return next(new AppError("Amount too small", {amount:`You cannot invest lesser than the minimum deposit of $${plan.minDeposit} on this plan`}, 400))
+    // Validate deposit limits
+    if (amount < plan.minDeposit) {
+        return next(new AppError("Amount too small", {
+            amount: `You cannot invest less than the minimum deposit of $${plan.minDeposit} on this plan`
+        }, 400));
     }
 
-    if( req.body.amount > plan.maxDeposit){
-        return next(new AppError("Amount too Large", {amount:`You cannot invest more than the maximum deposit of $${plan.maxDeposit} on this plan`}, 400))
-
+    if (amount > plan.maxDeposit) {
+        return next(new AppError("Amount too large", {
+            amount: `You cannot invest more than the maximum deposit of $${plan.maxDeposit} on this plan`
+        }, 400));
     }
 
-    if(wallet.balance < req.body.amount){
-        return next(new AppError("Insufficient fund", {balance:`Insufficient wallet balance. Kindly fund your wallet and try again.`}, 400))
-       
+    // Get user wallet
+    const wallet = await Wallet.findOne({ where: { userId } });
+    if (!wallet || wallet.balance < amount) {
+        return next(new AppError("Insufficient fund", {
+            balance: `Insufficient wallet balance. Kindly fund your wallet and try again.`
+        }, 400));
     }
 
-    // Calculate the expiry date
-     let expiryDate;
-     if (plan.timingParameter == 'hours') {
+    // Calculate expiry date
+    let expiryDate;
+    if (plan.timingParameter === 'hours') {
         expiryDate = new Date(Date.now() + plan.planDuration * 60 * 60 * 1000);
-     } else if (plan.timingParameter == 'days') {
+    } else if (plan.timingParameter === 'days') {
         expiryDate = new Date(Date.now() + plan.planDuration * 24 * 60 * 60 * 1000);
-     }
+    }
 
-    //Create investment
-    req.body.expiryDate = expiryDate;
-    const investment = await Investment.create(req.body);
+    // Create investment
+    const investment = await Investment.create({
+        userId,
+        planId,
+        amount,
+        expiryDate
+    });
 
-    //Substract invested amount from wallet
-    wallet.balance -= req.body.amount;
+    // Subtract invested amount from wallet
+    wallet.balance -= amount;
     await wallet.save();
 
-    //Manage referral wallet
-    if(req.user.referralId){
-        const referral= await User.findOne({accountId: req.user.referralId});
-       if(referral){
-            const referral_bonus = (plan.percentage / 100) * req.body.amount;
-            const referral_wallet = await Wallet.findOne({user: referral._id});
-            referral_wallet.referralBalance+=referral_bonus
-            await  referral_wallet.save();
-       }
-
+    // Handle referral bonus
+    if (req.user.referralId) {
+        const referral = await User.findOne({ where: { accountId: req.user.referralId } });
+        if (referral) {
+            const referralBonus = (plan.percentage / 100) * amount;
+            const referralWallet = await Wallet.findOne({ where: { userId: referral.id } });
+            if (referralWallet) {
+                referralWallet.referralBalance += referralBonus;
+                await referralWallet.save();
+            }
+        }
     }
-   
 
-    // Send email
-     try {
-        await new Email(req.user, '', '', req.body.amount,plan ).sendInvestment()
+    // Send investment email
+    try {
+        await new Email(req.user, '', '', amount, plan).sendInvestment();
         res.status(201).json({
             status: 'success',
-            data:{
+            data: {
                 investment
             }
         });
     } catch (error) {
-        console.log(error)
+        console.log(error);
         return next(new AppError("There was a problem sending the email. Please try again later!", '', 500));
     }
-
 });
 
-exports.getAllInvestments = catchAsync(async(req, res, next)=>{
-     //Allowed for fetching investments for the user
-     let filter = {};
-     if(req.user.role != 'admin') filter={user:req.user._id}
-   
-    const query =  Investment.find(filter);
 
-     //If the requested user is an admin, populate investment with the user.
-     if(req.user.role == 'admin'){
-        query.populate({path:'user', select:'name photo'})
-    }
-    const investments = await query;
+exports.getAllInvestments = catchAsync(async (req, res, next) => {
+    const whereClause = req.user.role !== 'admin' ? { userId: req.user.id } : {};
+
+    const investments = await Investment.findAll({
+        where: whereClause,
+        include: req.user.role === 'admin' ? [{
+            model: User,
+            as:'user',
+            attributes: ['firstName', 'lastName', 'photo']
+            },
+            {
+            model: Plan,
+            as:'plan',
+            attributes: ['id', 'name']
+            },
+        ] : [ {
+            model: Plan,
+            as:'plan',
+            attributes: ['id', 'name']
+            },
+        ]
+    });
 
     res.status(200).json({
-        result:investments.length,
-        status:"success",
-        data:{
+        result: investments.length,
+        status: "success",
+        data: {
             investments
         }
     });
 });
 
-
-
 exports.handleInvestments = catchAsync(async (req, res, next) => {
-    const investments = await Investment.find({ user: req.user._id, status: 'active' });
-    const wallet = await Wallet.findOne({ user: req.user._id });
+    const investments = await Investment.findAll({
+        where: { userId: req.user.id, status: 'active' },
+        include: [{ model: Plan }]
+    });
 
-    let totalProfit = 0; // Track total profit to be added to the wallet
-    let totalBalance = 0; // Track total balance to be added back to the wallet
+    const wallet = await Wallet.findOne({ where: { userId: req.user.id } });
+
+    let totalProfit = 0;
+    let totalBalance = 0;
 
     for (const investment of investments) {
-        const plan = await Plan.findById(investment.plan._id);
+        const plan = investment.Plan;
 
         const today = new Date();
         const lastUp = new Date(investment.updatedAt);
@@ -117,33 +137,29 @@ exports.handleInvestments = catchAsync(async (req, res, next) => {
 
         const from = new Date(investment.createdAt).getTime();
         const to = new Date(investment.expiryDate).getTime();
-    
         const totalDuration = (to - from) / 3600000;
-      
 
-        const expiryDate = new Date(investment.expiryDate).getTime();
+        const expiryDate = to;
         const now = today.getTime();
 
-      
-        // Mining has ended
         if (expiryDate <= now) {
-            // Calculate and accumulate the profit and balance
-            totalProfit += (plan.percentage / 100) * investment.amount;
+            // Mining ended
+            const profit = (plan.percentage / 100) * investment.amount;
+            totalProfit += profit;
             totalBalance += investment.amount;
-            // Update investment
-            investment.profit = (plan.percentage / 100) * investment.amount;
+
+            investment.profit = profit;
             investment.status = 'completed';
-            await investment.save(); // Save the investment only
+            await investment.save(); // Save individual investment
         } else {
-            // Mining is still active
+            // Mining still active
             const hourlyInterest = (((plan.percentage / 100) * investment.amount) / totalDuration) * hours;
-            investment.profit = investment.profit + hourlyInterest;
-            investment.updatedAt = Date.now();
-            await investment.save(); // Save the investment only
+            investment.profit += hourlyInterest;
+            investment.updatedAt = new Date();
+            await investment.save(); // Save individual investment
         }
     }
 
-    // Save wallet changes only once after processing all investments
     wallet.profit += totalProfit;
     wallet.balance += totalBalance;
     await wallet.save();
@@ -156,5 +172,6 @@ exports.handleInvestments = catchAsync(async (req, res, next) => {
         }
     });
 });
+
 
 

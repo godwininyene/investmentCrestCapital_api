@@ -33,8 +33,8 @@ module.exports = {
         type: Sequelize.STRING
       },
       paymentChannel: {
-        type: Sequelize.ENUM('bank payment', 'crypto wallet'),
-        defaultValue: 'bank payment'
+        type: Sequelize.ENUM('bank payment', 'crypto wallet', 'mobile transfer'),
+        defaultValue: 'crypto wallet'
       },
       userId: {
         type: Sequelize.INTEGER,

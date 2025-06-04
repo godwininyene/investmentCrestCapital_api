@@ -114,7 +114,7 @@ exports.login = catchAsync(async(req, res, next)=>{
    
     const user = await User.scope('withPassword').findOne({
         where: { email },
-        include:[{model:Wallet}]
+        include:[{model:Wallet, as: 'wallet'}]
     });
     if(!user || !(await user.correctPassword(password, user.password))){
         return next(new AppError("Password or email is incorrect ", "", 401))

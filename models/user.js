@@ -6,8 +6,8 @@ module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     static associate(models) {
       // Define associations (virtuals in Mongoose)
-      User.hasOne(models.Wallet, { foreignKey: "userId" });
-      User.hasMany(models.BankAccount, { foreignKey: "userId" });
+      User.hasOne(models.Wallet, { foreignKey: "userId", as:'wallet' });
+      User.hasMany(models.BankAccount, { foreignKey: "userId", as: 'bankAccounts' });
       User.hasMany(models.Transaction, { foreignKey: 'userId', as: 'transactions' });
     }
 

@@ -53,8 +53,10 @@ module.exports = (sequelize, DataTypes) => {
       validate: {
         customValidator(value) {
           const validOptions = ['profit', 'balance', 'referral_balance'];
-          if (!validOptions.includes(value)) {
-            throw new Error(`Pay option must be one of: ${validOptions.join(', ')}. Got "${value}"`);
+          if(value){
+            if (!validOptions.includes(value)) {
+              throw new Error(`Pay option must be one of: ${validOptions.join(', ')}. Got "${value}"`);
+            }
           }
         }
       }
@@ -64,11 +66,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true
     },
     paymentChannel: {
-      type: DataTypes.ENUM('bank payment', 'crypto wallet'),
-      defaultValue: 'bank payment',
+      type: DataTypes.ENUM('bank payment', 'crypto wallet', 'mobile transfer'),
+      defaultValue: 'crypto wallet',
       validate: {
         customValidator(value) {
-          const validOptions = ['bank payment', 'crypto wallet'];
+          const validOptions = ['bank payment', 'crypto wallet', 'mobile transfer'];
           if (!validOptions.includes(value)) {
             throw new Error(`Payment channel must be one of: ${validOptions.join(', ')}. Got "${value}"`);
           }

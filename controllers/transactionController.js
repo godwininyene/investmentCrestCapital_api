@@ -48,7 +48,7 @@ exports.createTransaction = catchAsync(async(req, res, next)=>{
     const { type, amount, pay_option, user } = req.body;
     
     // Assign the user ID if it's not provided in the body (for nested routes)
-    if (!req.body.user) req.body.user = req.user.id;
+    if (!req.body.userId) req.body.userId = req.user.id;
 
     // If transaction type is 'withdrawal', check the payment option
     if (type === 'withdrawal') {
@@ -106,79 +106,100 @@ exports.createTransaction = catchAsync(async(req, res, next)=>{
     }
 });
 
-exports.getAllTransactions = catchAsync(async(req, res, next)=>{
-    //Allowed for fetching transaction for the user
-    let filter = {};
-    if(req.user.role != 'admin') filter={user:req.user._id}
-    const query = Transaction.find(filter);
+exports.getAllTransactions = catchAsync(async (req, res, next) => {
+    // Set filter condition based on user role
+    const whereCondition = req.user.role !== 'admin' ? { userId: req.user.id } : {};
 
-    //If the requested user is an admin, populate transactions with the user.
-    if(req.user.role == 'admin'){
-        query.populate({path:'user', select:'name photo'})
+    // Build the query options
+    const queryOptions = {
+        where: whereCondition,
+    };
+
+    // If admin, include user details
+    if (req.user.role === 'admin') {
+        queryOptions.include = [
+            {
+                model: User,
+                as:'user',
+                attributes: ['firstName','lastName', 'photo', 'email'],
+            },
+        ];
     }
 
-    const transactions = await query;
+    const transactions = await Transaction.findAll(queryOptions);
 
     res.status(200).json({
-        results:transactions.length,
-        status:'success',
-        data:{
-           transactions
-        }
+        results: transactions.length,
+        status: 'success',
+        data: {
+            transactions,
+        },
     });
 });
 
-exports.getRecentTransactions = catchAsync(async (req, res, next) => {
-    // Set default limit to 5 transactions if not specified
-    const limit = parseInt(req.query.limit) || 5;
-    
-    // Build the base query
-    let query = Transaction.find({ 
-        user: req.user._id 
-    })
-    .sort({ createdAt: -1 }) // Sort by most recent first
-    .limit(limit);
 
-    // If admin, allow viewing any user's transactions with user details
-    if (req.user.role === 'admin') {
-        query = Transaction.find(req.query.user ? { user: req.query.user } : {})
-            .sort({ createdAt: -1 })
-            .limit(limit)
-            .populate({
-                path: 'user',
-                select: 'name photo email'
-            });
+exports.getRecentTransactions = catchAsync(async (req, res, next) => {
+    // Default to 5 if not provided
+    const limit = parseInt(req.query.limit) || 5;
+
+    // Setup base query options
+    const queryOptions = {
+        order: [['createdAt', 'DESC']],
+        limit,
+        where: {},
+    };
+
+    // If user is not admin, filter by logged-in user
+    if (req.user.role !== 'admin') {
+        queryOptions.where.userId = req.user.id;
+    } else {
+        // Admin: allow querying by user ID if provided
+        if (req.query.user) {
+            queryOptions.where.userId = req.query.user;
+        }
+
+        // Include user details
+        queryOptions.include = [{
+            model: User,
+            as:'user',
+            attributes: ['firstName', 'lastName'],
+        }];
     }
 
-    const transactions = await query;
+    const transactions = await Transaction.findAll(queryOptions);
 
     res.status(200).json({
         status: 'success',
         results: transactions.length,
         data: {
-            transactions
-        }
+            transactions,
+        },
     });
 });
 
+
 exports.handleTransaction = catchAsync(async (req, res, next) => {
     const { action } = req.params; // 'approve' or 'decline'
+    const transactionId = req.params.id;
 
-    //If the requested user is an admin, populate transactions with the user.
-    let query = Transaction.findById(req.params.id)
-   
-    if(req.user.role == 'admin'){
-        query.populate({path:'user', select:'name photo'})
-    }
-    // Retrieve transaction, user, and wallet
-    const transaction = await query;
+    // Retrieve the transaction
+    const transaction = await Transaction.findByPk(transactionId, {
+        include: req.user.role === 'admin' ? [{ model: User, as:'user',attributes: ['firstName', 'lastName', 'photo'] }] : []
+    });
+
     if (!transaction) {
         return next(new AppError("No transaction was found with that ID", '', 404));
     }
-    const wallet = await Wallet.findOne({ user: transaction.user });
-    const user = await User.findById(transaction.user);
 
-    // Already processed status checks
+    // Get the user and wallet
+    const user = await User.findByPk(transaction.userId);
+    const wallet = await Wallet.findOne({ where: { userId: transaction.userId } });
+
+    if (!user || !wallet) {
+        return next(new AppError("User or wallet not found", '', 404));
+    }
+
+    // Check already processed
     if (action === 'approve' && transaction.status === 'success') {
         return next(new AppError("Transaction already approved!", '', 400));
     }
@@ -186,8 +207,8 @@ exports.handleTransaction = catchAsync(async (req, res, next) => {
         return next(new AppError("Transaction already declined!", '', 400));
     }
 
+    // Update balances and transaction status
     if (action === 'approve') {
-        // Approve transaction logic
         if (transaction.type === 'deposit') {
             wallet.balance += transaction.amount;
         } else if (transaction.type === 'withdrawal') {
@@ -195,7 +216,7 @@ exports.handleTransaction = catchAsync(async (req, res, next) => {
         }
         transaction.status = 'success';
     } else if (action === 'decline') {
-        // Decline transaction logic
+        // If already approved before and now declining, reverse the previous action
         if (transaction.status === 'success') {
             if (transaction.type === 'deposit') {
                 wallet.balance -= transaction.amount;
@@ -205,12 +226,16 @@ exports.handleTransaction = catchAsync(async (req, res, next) => {
         }
         transaction.status = 'declined';
     }
-    
 
-    // Prepare email info
+    // Save updates
+    await wallet.save();
+    await transaction.save();
+
+    // Email preparation
+    const referer = req.get('referer') || '';
     const urls = {
-        deposit: `${req.get('referer')}manage/investor/dashboard`,
-        withdrawal: `${req.get('referer')}manage/investor/transactions`
+        deposit: `${referer}manage/investor/dashboard`,
+        withdrawal: `${referer}manage/investor/transactions`
     };
 
     const types = {
@@ -224,22 +249,16 @@ exports.handleTransaction = catchAsync(async (req, res, next) => {
         }
     };
 
-    // Set email info based on action and transaction type
     const type = types[action]?.[transaction.type];
     const url = action === 'approve' ? urls[transaction.type] : undefined;
 
-
-    //save updates
-    await wallet.save({ validateBeforeSave: false });
-    await transaction.save({ validateBeforeSave: false });
-
-    // Send email
     try {
-        await new Email(user, type, url, transaction.amount).sendTransaction()
+        await new Email(user, type, url, transaction.amount).sendTransaction();
+
         res.status(200).json({
             status: 'success',
             message: `Transaction ${action}d successfully!`,
-            data:{
+            data: {
                 transaction
             }
         });
