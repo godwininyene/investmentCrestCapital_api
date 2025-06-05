@@ -10,29 +10,42 @@ module.exports = class Email {
         this.amount = amount;
         this.plan = plan;
         this.emailVerificationCode = emailVerificationCode;
-        this.from = `InvestmentCrestCapital <${process.env.EMAIL_FROM}>`;
+        this.from = `InvestmentCrestCapital <${process.env.EMAIL_USER}>`;
     }
 
     newTransport(){
-        if(process.env.NODE_ENV === 'production'){
-            // Using Gmail service
+        // if(process.env.NODE_ENV === 'production'){
+        //     // Using Gmail service
+        //     return nodemailer.createTransport({
+        //         service:"Gmail",
+        //         auth:{
+        //             user:process.env.GMAIL_USERNAME,
+        //             pass:process.env.GMAIL_PASS
+        //         }
+        //     })
+        // }
+
+        if (process.env.NODE_ENV === 'production') {
             return nodemailer.createTransport({
-                service:"Gmail",
-                auth:{
-                    user:process.env.GMAIL_USERNAME,
-                    pass:process.env.GMAIL_PASS
+                host: process.env.EMAIL_HOST,
+                port: process.env.EMAIL_PORT,
+                secure: process.env.EMAIL_PORT == 465, // Use TLS for port 465
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASSWORD
                 }
-            })
+            });
         }
 
-        return nodemailer.createTransport({
-            host:process.env.EMAIL_HOST,
-            port:process.env.EMAIL_PORT,
-            auth:{
-                user:process.env.EMAIL_USERNAME,
-                pass:process.env.EMAIL_PASSWORD
-            }
-        })
+
+        // return nodemailer.createTransport({
+        //     host:process.env.EMAIL_HOST,
+        //     port:process.env.EMAIL_PORT,
+        //     auth:{
+        //         user:process.env.EMAIL_USERNAME,
+        //         pass:process.env.EMAIL_PASSWORD
+        //     }
+        // })
     }
 
     async send(template, subject){
