@@ -1,16 +1,30 @@
 const catchAsync = require("../utils/catchAsync");
-const Wallet = require('../mongoose_models/wallet');
-const User = require('../mongoose_models/user');
+const{User, Wallet} = require('./../models')
 
-exports.fundWallet = catchAsync(async(req, res, next)=>{
-    const wallet = await Wallet.findOne({user:req.params.id});
-    wallet[req.body.wallet_type]+= parseInt(req.body.amount);
+exports.fundWallet = catchAsync(async (req, res, next) => {
+    const { wallet_type, amount } = req.body;
+    const userId = req.params.id;
+
+    // 1) Find wallet by userId
+    const wallet = await Wallet.findOne({ where: { userId } });
+    if (!wallet) {
+        return next(new AppError("Wallet not found for this user", '', 404));
+    }
+
+    // 2) Add amount to the appropriate wallet_type field
+    wallet[wallet_type] += parseInt(amount, 10);
     await wallet.save();
-    const user = await User.findById(req.params.id).populate('wallet')
+
+    // 3) Fetch updated user with populated wallet
+    const user = await User.findOne({
+        where: { id: userId },
+        include: [{ model: Wallet, as: 'wallet' }]
+    });
+
     res.status(200).json({
-        status:'success',
-        data:{
+        status: 'success',
+        data: {
             user
         }
-    })
+    });
 });

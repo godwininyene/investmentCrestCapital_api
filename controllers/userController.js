@@ -4,6 +4,48 @@ const Email = require('./../utils/email')
 const{ User, Wallet, BankAccount} = require('./../models')
 const { Op } = require("sequelize");
 
+const multer = require('multer')
+const sharp = require('sharp');
+const {cloudinary} = require('./../utils/cloudinary');
+
+const multerStorage = multer.memoryStorage();
+
+const multerFilter = (req, file, cb)=>{
+    if(file.mimetype.startsWith("image")){
+       cb(null, true)
+    }else{
+        cb(new AppError("Invalid File.", {photo:"Photo must be of type image!"}, 400), false)
+    }
+}
+
+const upload = multer({
+    storage:multerStorage,
+    fileFilter:multerFilter
+})
+
+exports.uploadPhoto = upload.single("photo");
+
+exports.resizePhoto = catchAsync(async(req, res, next)=>{
+    if (!req.file) return next();
+
+    const processedImageBuffer = await sharp(req.file.buffer)
+        .toFormat("jpeg")
+        .jpeg({ quality: 30 })
+        .toBuffer();
+
+    const result = await cloudinary.uploader.upload_stream({
+        folder: 'investmentCrest/photo',
+        public_id: `photo-${req.user.id}-${Date.now()}`,
+        format: 'jpeg',
+    }, (error, result) => {
+        if (error) {
+            return next(new AppError("Cloudinary upload failed.", 500));
+        }
+        req.file.filename = result.secure_url; // store the URL for future use
+        next();
+    }).end(processedImageBuffer); // upload the buffer directly
+})
+
 const filterObj = (obj, ...allowFields)=>{
     const newObj = {};
     Object.keys(obj).forEach(key=>{
@@ -54,8 +96,8 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   }
 
   // 2) Filter out fields not allowed to be updated
-  const filteredBody = filterObj(req.body, 'firstName', 'lastName', 'email', 'phone');
-
+  const filteredBody = filterObj(req.body, 'firstName', 'lastName', 'email', 'phone', 'photo');
+if(req.file) filteredBody.photo = req.file.filename;
   // 3) Update the user using Sequelize
   const user = await User.findByPk(req.user.id);
   if (!user) {
@@ -177,6 +219,8 @@ exports.updateStatus = catchAsync(async (req, res, next) => {
         user: updatedUser,
       },
     });
+    console.log('Email sent');
+    
   } catch (error) {
     return next(
       new AppError('There was a problem sending the email. Please try again later!', '', 500)

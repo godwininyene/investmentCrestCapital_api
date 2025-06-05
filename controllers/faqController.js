@@ -1,5 +1,6 @@
-const Faq = require("../mongoose_models/faq");
+const { Faq } = require('./../models');
 const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/apError");
 
 exports.createFaq = catchAsync(async(req, res, next)=>{
     const faq = await Faq.create(req.body);
@@ -13,7 +14,7 @@ exports.createFaq = catchAsync(async(req, res, next)=>{
 
 exports.getAllfaqs = async(req, res, next)=>{
    
-    const faqs = await Faq.find().select('-__v').sort('-_id');
+    const faqs = await Faq.findAll();
     res.status(200).json({
         status:"success",
         result:faqs.length,
@@ -23,31 +24,39 @@ exports.getAllfaqs = async(req, res, next)=>{
     })
 }
 
-exports.updateFaq = catchAsync(async(req, res, next)=>{
-    
-    const faq = await Faq.findByIdAndUpdate(req.params.id, req.body, {
-        new:true,
-        runValidators:true
-    })
-    if(!faq){
-        return next(new AppError("No faq was found with that ID", '', 404))
+exports.updateFaq = catchAsync(async (req, res, next) => {
+    const [updatedCount, updatedRows] = await Faq.update(req.body, {
+        where: { id: req.params.id },
+        returning: true,
+        individualHooks: true, // Optional: if you use hooks and want validators to run
+    });
+
+    if (updatedCount === 0) {
+        return next(new AppError("No faq was found with that ID", '', 404));
     }
+
+    const updatedFaq = updatedRows[0];
+
     res.status(200).json({
-        status:"success",
-        data:{
-            faq
+        status: "success",
+        data: {
+            faq: updatedFaq
         }
-    })
+    });
 });
 
-exports.deleteFaq = catchAsync(async(req, res, next)=>{
-    const faq = await Faq.findByIdAndDelete(req.params.id)
-    if(!faq){
-        return next(new AppError("No faq was found with that ID", '', 404))
-    }
-    res.status(204).json({
-        status:"success",
-        data:null
-    })
 
+exports.deleteFaq = catchAsync(async (req, res, next) => {
+    const deletedCount = await Faq.destroy({
+        where: { id: req.params.id }
+    });
+
+    if (deletedCount === 0) {
+        return next(new AppError("No faq was found with that ID", '', 404));
+    }
+
+    res.status(204).json({
+        status: "success",
+        data: null
+    });
 });

@@ -28,7 +28,7 @@ router.use('/me/investments', investmentRouter)
 router.use('/me/banks', banksRouter)
 
 router.route('/updateMyPassword').patch( authController.updatePassword);
-router.route('/updateMe').patch(userController.updateMe);
+router.route('/updateMe').patch(userController.uploadPhoto, userController.resizePhoto, userController.updateMe); 
 router.route('/me').get(userController.getMe, userController.getUser);
 router.route('/deleteMe').delete(userController.deleteMe);
 

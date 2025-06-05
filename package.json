@@ -1,7 +1,7 @@
 {
-  "name": "trade_invest_api",
+  "name": "investcrestcapital_api",
   "version": "1.0.0",
-  "description": "This api will be used to power tradeInvest frontend",
+  "description": "This api will be used to power investmentcrestcapital frontend",
   "main": "app.js",
   "scripts": {
     "start": "node server.js",
