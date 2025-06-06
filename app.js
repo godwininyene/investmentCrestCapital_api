@@ -11,15 +11,25 @@ const statsRouter = require('./routes/statsRoutes')
 const AppError = require('./utils/apError');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
-const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp')
 const cookieParser = require('cookie-parser');
 const multer = require('multer')
 const cors = require('cors');
 const compression = require('compression')
-const Country = require('./mongoose_models/country')
 const app = express();
+const{ sequelize} = require('./models')
+
+// app.use('/', async(req, res, next)=>{
+//     try {
+//         await sequelize.authenticate();
+//         return res.status(200).json({message:'Connection has been established successfully.'})
+//         console.log('Connection has been established successfully.');
+//     } catch (error) {
+//         return res.status(500).json({message:'Unable to connect to the database:', error:error})
+       
+//     }
+// })
 
 // Trust the first proxy
 app.set('trust proxy', 1);
@@ -47,6 +57,9 @@ app.use(cors({
 }));
 
 
+
+
+
 // app.options('*', cors())
 app.options('*', cors({
     origin: process.env.FRONTEND_URL,
@@ -65,9 +78,6 @@ app.use(compression())
 app.use(express.json());
 app.use(cookieParser())
 
-
-// Data Sanitization against Nosql Query Injection
-app.use(mongoSanitize());
 //Data Sanitization against xss attack
 app.use(xss());
 //Preventing Parameter Pollution Attack
@@ -80,6 +90,8 @@ app.use((req, res, next) => {
     // console.log(req.cookies.jwt)
     next();
 })
+
+
 //Mounting all routers
 app.use('/api/v1/transactions', transactionRouter);
 app.use('/api/v1/users', userRouter);
@@ -88,15 +100,6 @@ app.use('/api/v1/investments', upload.none(), investmentRouter);
 app.use('/api/v1/paymentOptions', paymentOptionRouter);
 app.use('/api/v1/faqs', upload.none(), faqRouter);
 app.use('/api/v1/stats', statsRouter)
-app.use('/api/v1/countries', async(req, res, next)=>{
-    const countries = await Country.find();
-    res.status(200).json({
-        status:'success',
-        data:{
-            countries
-        }
-    })
-})
 
 
 //Not found route

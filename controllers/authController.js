@@ -56,17 +56,21 @@ exports.signup = catchAsync(async(req, res, next)=>{
     await Wallet.create({userId:user.id});
     // Generate email verification token
     const verificationCode = user.createEmailVerificationCode();
-    await user.save({ validateBeforeSave: false }); // <-- Save the user after setting the code
+    await user.save({ validate: false });; // <-- Save the user after setting the code
    
+     // 3)  // Send verification email
+    try {
+       await new Email(user, '', '', '', '', verificationCode).sendVerificationEmail();;
+        return res.status(201).json({ 
+            message: "User registered successfully. Please verify your email." ,
+            status:'success',
+        });
+        // createSendToken(user, 201, req, res)
+    } catch (err) {
+        console.log('Email Error', err);
+        return next(new AppError("Account created successfully. But there was a problem sending email.", '', 500));
+    }
 
-    // Send verification email
-    await new Email(user, '', '', '', '', verificationCode).sendVerificationEmail();
-
-    return res.status(201).json({ 
-        message: "User registered successfully. Please verify your email." ,
-        status:'success',
-    });
-    // createSendToken(user, 201, req, res)
 });
 exports.verifyEmail = catchAsync(async (req, res, next) => {
     const { code } = req.body;

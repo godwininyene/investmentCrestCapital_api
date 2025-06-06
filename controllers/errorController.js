@@ -51,7 +51,6 @@ const sendErrorProd = (err, res)=>{
         });
     //programming  and unknown error: Don't Leak detail
    }else{
-        console.log(err);
         res.status(err.statusCode).json({
             status:err.status,
             error:err,

@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 dotenv.config({path:'./config.env'});
 
@@ -9,19 +8,6 @@ process.on('uncaughtException', err=>{
 })
 
 const app = require('./app');
-
-let DB;
-
-if (process.env.NODE_ENV === 'development') {
-    DB = process.env.DB_LOCAL;
-} else if (process.env.NODE_ENV === 'production') {
-    DB = process.env.DB_LOCAL;
-    // DB = process.env.DATABASE.replace('<PASSWORD>', process.env.DATABASE_PASSWORD);
-}
-
-
-// mongoose.connect(DB).then(() => {console.log('DB connection successfully')})
-
 
 const port = process.env.PORT || 3000
 const server = app.listen(port, ()=>{
