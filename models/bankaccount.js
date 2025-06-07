@@ -26,45 +26,29 @@ module.exports = (sequelize, DataTypes) => {
           },
         },
       },
-      bankName: {
+      network: {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
           notNull: {
-            msg: "Please provide bank name",
+            msg: "Please provide network",
           },
           notEmpty: {
-            msg: "Please provide bank name",
+            msg: "Please provide network",
           },
         },
       },
-      accountNumber: {
+      walletAddress: {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
           notNull: {
-            msg: "Please provide account number",
+            msg: "Please provide wallet address",
           },
           notEmpty: {
-            msg: "Please provide account number",
+            msg: "Please provide wallet address",
           },
         },
-      },
-      accountName: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-          notNull: {
-            msg: "Please provide account name",
-          },
-          notEmpty: {
-            msg: "Please provide account name",
-          },
-        },
-      },
-      accountType: {
-        type: DataTypes.STRING,
-        allowNull: true,
       },
     },
     {

@@ -23,3 +23,18 @@ exports.getAllAccounts = catchAsync(async(req, res, next)=>{
         }
     });
 })
+
+exports.deleteWallet = catchAsync(async (req, res, next) => {
+    const deletedCount = await BankAccount.destroy({
+        where: { id: req.params.id }
+    });
+
+    if (deletedCount === 0) {
+        return next(new AppError("No wallet was found with that ID", '', 404));
+    }
+
+    res.status(204).json({
+        status: "success",
+        data: null
+    });
+});

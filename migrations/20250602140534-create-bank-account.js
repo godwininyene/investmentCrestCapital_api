@@ -18,21 +18,13 @@ module.exports = {
         },
         onDelete: "CASCADE",
       },
-      bankName: {
+      network: {
         type: Sequelize.STRING,
         allowNull: false,
       },
-      accountNumber: {
+      walletAddress: {
         type: Sequelize.STRING,
         allowNull: false,
-      },
-      accountName: {
-        type: Sequelize.STRING,
-        allowNull: false,
-      },
-      accountType: {
-        type: Sequelize.STRING,
-        allowNull: true,
       },
       createdAt: {
         allowNull: false,
