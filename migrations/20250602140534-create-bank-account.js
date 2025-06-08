@@ -38,9 +38,6 @@ module.exports = {
 
     // Add index for better query performance
     await queryInterface.addIndex("BankAccounts", ["userId"]);
-    await queryInterface.addIndex("BankAccounts", ["accountNumber"], {
-      unique: true,
-    });
   },
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('BankAccounts');
