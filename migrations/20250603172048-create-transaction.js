@@ -10,7 +10,7 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       type: {
-        type: Sequelize.ENUM('deposit', 'withdrawal', 'investment'),
+        type: Sequelize.ENUM('investment deposit', 'copytrade deposit', 'withdrawal', 'investment'),
         allowNull: false
       },
       amount: {
@@ -26,7 +26,7 @@ module.exports = {
         defaultValue: 'pending'
       },
       payOption: {
-        type: Sequelize.ENUM('profit', 'balance', 'referral_balance'),
+        type: Sequelize.ENUM('profit', 'balance', 'copytrade', 'referralBalance', 'copytradeBalance', 'copytradeProfit'),
         allowNull: true
       },
       receipt: {

@@ -8,11 +8,13 @@ module.exports = (sequelize, DataTypes) => {
       Investment.belongsTo(models.User, {
         foreignKey: "userId",
         as: "user",
+        onDelete:'CASCADE'
       });
       
       Investment.belongsTo(models.Plan, {
         foreignKey: "planId",
         as: "plan",
+        onDelete:'CASCADE'
       });
     }
   }

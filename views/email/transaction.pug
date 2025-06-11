@@ -2,7 +2,7 @@ extends baseEmail
 
 block content
   strong Hi #{firstName},
-  if type == 'deposit'
+  if type == 'investment deposit' || type== 'copytrade deposit'
     p
       | You have successfully deposited 
       b $#{amount}

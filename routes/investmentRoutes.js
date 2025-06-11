@@ -8,10 +8,9 @@ const router = express.Router({mergeParams:true});
 router.use(authController.protect);
 
 router.route('/')
-.post(investmentController.makeInvestment)
+.post(authController.restrictTo('user'), investmentController.makeInvestment)
 .get(investmentController.getAllInvestments);
 
 router.route('/mine').patch(investmentController.handleInvestments)
-router.route('/:id').get().patch().delete();
 
 module.exports = router;

@@ -7,6 +7,8 @@ const investmentRouter = require('./routes/investmentRoutes');
 const transactionRouter = require('./routes/transactionRoutes');
 const paymentOptionRouter = require('./routes/paymentOptionRoutes');
 const faqRouter = require('./routes/faqRoutes')
+const copytradeRouter = require('./routes/copytradeRoutes')
+const copytradeInvestmentRouter = require('./routes/copytradeInvestmentRoutes')
 const statsRouter = require('./routes/statsRoutes')
 const AppError = require('./utils/apError');
 const rateLimit = require('express-rate-limit');
@@ -18,18 +20,21 @@ const multer = require('multer')
 const cors = require('cors');
 const compression = require('compression')
 const app = express();
-const{ sequelize} = require('./models')
+const{ sequelize, Plan} = require('./models')
 
-// app.use('/', async(req, res, next)=>{
-//     try {
-//         await sequelize.authenticate();
-//         return res.status(200).json({message:'Connection has been established successfully.'})
-//         console.log('Connection has been established successfully.');
-//     } catch (error) {
-//         return res.status(500).json({message:'Unable to connect to the database:', error:error})
+app.use('/', async(req, res, next)=>{
+    try {
+        // await sequelize.authenticate();
+        const plans = await Plan.findAll();
+        return res.status(200).json({message: 'Plans fetched', plans:plans})
+        // return res.status(200).json({message:'Connection has been established successfully.'})
+        // console.log('Connection has been established successfully.');
+    } catch (error) {
+        return res.status(500).json({message:'failed to fetch plans', errors:error})
+        // return res.status(500).json({message:'Unable to connect to the database:', error:error})
        
-//     }
-// })
+    }
+})
 
 // Trust the first proxy
 app.set('trust proxy', 1);
@@ -100,6 +105,8 @@ app.use('/api/v1/investments', upload.none(), investmentRouter);
 app.use('/api/v1/paymentOptions', paymentOptionRouter);
 app.use('/api/v1/faqs', upload.none(), faqRouter);
 app.use('/api/v1/stats', statsRouter)
+app.use('/api/v1/copytrades', copytradeRouter)
+app.use('/api/v1/copytradeInvestments', copytradeInvestmentRouter)
 
 
 //Not found route

@@ -45,33 +45,41 @@ exports.resizeReceipt = catchAsync(async(req, res, next)=>{
     }).end(processedImageBuffer); // upload the buffer directly
 })
 exports.createTransaction = catchAsync(async(req, res, next)=>{
-    const { type, amount, pay_option, user } = req.body;
+    const { type, amount, payOption, user } = req.body;
     
     // Assign the user ID if it's not provided in the body (for nested routes)
     if (!req.body.userId) req.body.userId = req.user.id;
 
     // If transaction type is 'withdrawal', check the payment option
     if (type === 'withdrawal') {
-        if (!pay_option) {
-            return next(new AppError('Missing Pay option.', { pay_option: 'Please provide pay option' }, 400));
+        if (!payOption) {
+            return next(new AppError('Missing Pay option.', { payOption: 'Please provide pay option' }, 400));
         }
 
         const wallet = await Wallet.findOne({ userId: req.user.id });
         if (!wallet) return next(new AppError('Wallet not found.', '', 404));
 
-        // Validate withdrawal based on the selected pay_option and wallet balances
+        // Validate withdrawal based on the selected payOption and wallet balances
         let balanceField, balanceAmount;
-        if (pay_option === 'profit') {
+        if (payOption === 'profit') {
             balanceField = 'profit';
             balanceAmount = wallet.profit;
-        } else if (pay_option === 'balance') {
+        } else if (payOption === 'balance') {
             balanceField = 'balance';
             balanceAmount = wallet.balance;
-        } else if (pay_option === 'referral_balance') {
+        } else if (payOption === 'referralBalance') {
             balanceField = 'referral balance';
             balanceAmount = wallet.referralBalance;
+        }else if(payOption ==='copytradeBalance'){
+             balanceField = 'copytrade balance';
+            balanceAmount = wallet.copytradeBalance
+
+        }else if(payOption === 'copytradeProfit'){
+            balanceField = 'copytrade profit';
+            balanceAmount = wallet.copytradeProfit
+
         }else{
-            return next(new AppError('Invalid pay opton.', {pay_option:`Pay option is either: profit, balance or referral_balance. But got ${pay_option}`}, 400))
+            return next(new AppError('Invalid pay opton.', {payOption:`Pay option is either: profit, balance or referral_balance. But got ${pay_option}`}, 400))
         }
 
         if (balanceAmount < amount) {
@@ -209,19 +217,23 @@ exports.handleTransaction = catchAsync(async (req, res, next) => {
 
     // Update balances and transaction status
     if (action === 'approve') {
-        if (transaction.type === 'deposit') {
+        if (transaction.type === 'investment deposit') {
             wallet.balance += transaction.amount;
+        }else if(transaction.type == 'copytrade deposit'){
+            wallet.copytradeBalance = transaction.amount
         } else if (transaction.type === 'withdrawal') {
-            wallet.balance -= transaction.amount;
+            wallet[transaction.payOption] -= transaction.amount;
         }
         transaction.status = 'success';
     } else if (action === 'decline') {
         // If already approved before and now declining, reverse the previous action
         if (transaction.status === 'success') {
-            if (transaction.type === 'deposit') {
+            if (transaction.type === 'investment deposit') {
                 wallet.balance -= transaction.amount;
+            }else if(transaction.type === 'copytrade deposit'){
+                wallet.copytradeBalance-=transaction.amount
             } else if (transaction.type === 'withdrawal') {
-                wallet.balance += transaction.amount;
+                wallet[transaction.payOption] += transaction.amount;
             }
         }
         transaction.status = 'declined';
@@ -249,8 +261,10 @@ exports.handleTransaction = catchAsync(async (req, res, next) => {
         }
     };
 
-    const type = types[action]?.[transaction.type];
-    const url = action === 'approve' ? urls[transaction.type] : undefined;
+    const use_type = transaction.type ==='investment deposit' || transaction.type =='copytrade deposit' ? 'deposit' : 'withdrawal'
+
+    const type = types[action]?.[use_type];
+    const url = action === 'approve' ? urls[use_type] : undefined;
 
     try {
         await new Email(user, type, url, transaction.amount).sendTransaction();

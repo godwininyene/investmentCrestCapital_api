@@ -32,7 +32,7 @@ exports.resizeBarcode = catchAsync(async(req, res, next)=>{
 
     const result = await cloudinary.uploader.upload_stream({
         folder: 'crypto/barcodes',
-        public_id: `barcode-${req.user._id}-${Date.now()}`,
+        public_id: `barcode-${req.user.id}-${Date.now()}`,
         format: 'jpeg',
     }, (error, result) => {
         if (error) {

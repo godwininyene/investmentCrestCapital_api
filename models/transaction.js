@@ -11,12 +11,12 @@ module.exports = (sequelize, DataTypes) => {
   }
   Transaction.init({
      type: {
-      type: DataTypes.ENUM('deposit', 'withdrawal', 'investment'),
+      type: DataTypes.ENUM('investment deposit', 'copytrade deposit', 'withdrawal', 'investment'),
       allowNull: false,
       validate: {
         notNull: { msg: 'Please provide transaction type' },
         customValidator(value) {
-          const validOptions = ['deposit', 'withdrawal', 'investment'];
+          const validOptions = ['investment deposit', 'copytrade deposit', 'withdrawal', 'investment'];
           if (!validOptions.includes(value)) {
             throw new Error(`Transaction type must be one of: ${validOptions.join(', ')}. Got "${value}"`);
           }
@@ -48,11 +48,11 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     payOption: {
-      type: DataTypes.ENUM('profit', 'balance', 'referral_balance'),
+      type: DataTypes.ENUM('profit', 'balance', 'copytrade', 'referralBalance', 'copytradeBalance', 'copytradeProfit'),
       allowNull: true,
       validate: {
         customValidator(value) {
-          const validOptions = ['profit', 'balance', 'referral_balance'];
+          const validOptions = ['profit', 'balance','copytrade', 'referralBalance', 'copytradeBalance', 'copytradeProfit'];
           if(value){
             if (!validOptions.includes(value)) {
               throw new Error(`Pay option must be one of: ${validOptions.join(', ')}. Got "${value}"`);

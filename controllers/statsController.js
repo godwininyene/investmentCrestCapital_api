@@ -1,4 +1,4 @@
-const { Wallet, User, Transaction, Investment, Plan } = require('./../models');
+const { Wallet, User, Transaction, Investment, Plan,CopyTradeInvestment } = require('./../models');
 const catchAsync = require("../utils/catchAsync");
 const { Op } = require("sequelize");
 
@@ -58,6 +58,21 @@ const getInvestmentStats = async (user_id) => {
     return { investments, total_investment, total_profit, total_amount };
 };
 
+const getUserCopytradeInvestmentStats = async userId =>{
+    // Count all investments
+    const total_copytrade_investment = await CopyTradeInvestment.count({ where: { userId} });
+    // Sum  amounts
+    const all_investments = await CopyTradeInvestment.findAll({ where: { userId} });
+
+    let total_copytrade_amount = 0;
+
+    all_investments.forEach(el => {
+       total_copytrade_amount += el.amount;
+    });
+
+    return{total_copytrade_investment,total_copytrade_amount}
+}
+
 
 // GetTotalTransactions to Sequelize
 const getTotalTransactions = async (user_id) => {
@@ -66,14 +81,16 @@ const getTotalTransactions = async (user_id) => {
     const transactions = await Transaction.findAll({ where });
 
     let total_deposit = 0;
+    let total_copytrade_deposit=0;
     let total_withdrawal = 0;
 
     transactions.forEach(tran => {
-        if (tran.type === 'deposit') total_deposit += tran.amount;
+        if (tran.type === 'investment deposit') total_deposit += tran.amount;
+        if (tran.type === 'copytrade deposit') total_copytrade_deposit += tran.amount;
         if (tran.type === 'withdrawal') total_withdrawal += tran.amount;
     });
 
-    return { total_deposit, total_withdrawal };
+    return { total_deposit,total_copytrade_deposit, total_withdrawal };
 };
 
 
@@ -107,11 +124,24 @@ exports.getStatsForAdmin = catchAsync(async (req, res, next) => {
     let total_balance = 0;
     let total_profit = 0;
     let total_referral_balance = 0;
+    let total_copytrade_profit = 0;
 
     wallets.forEach(wallet => {
         total_balance += wallet.balance;
         total_profit += wallet.profit;
+        total_copytrade_profit+=wallet.copytradeProfit
         total_referral_balance += wallet.referralBalance;
+    });
+
+    // Count all investments
+    const active_copytrade_investments = await CopyTradeInvestment.count();
+    // Sum  amounts
+    const all_investments = await CopyTradeInvestment.findAll();
+
+    let total_copytrade_amount = 0;
+
+    all_investments.forEach(el => {
+       total_copytrade_amount += el.amount;
     });
 
     const stats = {
@@ -120,6 +150,9 @@ exports.getStatsForAdmin = catchAsync(async (req, res, next) => {
         total_withdrawal,
         total_referral_balance,
         total_referrals,
+        active_copytrade_investments,
+        total_copytrade_amount,
+        total_copytrade_profit,
         users
     };
 
@@ -145,7 +178,9 @@ exports.getStatsForUser = catchAsync(async (req, res, next) => {
         total_amount
     } = await getInvestmentStats(userId);
 
-    const { total_deposit, total_withdrawal } = await getTotalTransactions(userId);
+    const {total_copytrade_investment,total_copytrade_amount} = await getUserCopytradeInvestmentStats(userId)
+
+    const { total_deposit,total_copytrade_deposit, total_withdrawal } = await getTotalTransactions(userId);
 
     const wallet = await Wallet.findOne({ where: { userId } });
 
@@ -163,7 +198,10 @@ exports.getStatsForUser = catchAsync(async (req, res, next) => {
                 total_withdrawal,
                 total_amount,
                 total_deposit,
+                total_copytrade_deposit,
                 total_referrals,
+                total_copytrade_investment,
+                total_copytrade_amount,
                 wallet
             }
         }

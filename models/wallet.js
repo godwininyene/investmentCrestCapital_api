@@ -20,6 +20,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DOUBLE,
         defaultValue: 0,
       },
+      copytradeProfit: {
+        type: DataTypes.DOUBLE,
+        defaultValue: 0,
+      },
+      copytradeBalance: {
+        type: DataTypes.DOUBLE,
+        defaultValue: 0,
+      },
       referralBalance: {
         type: DataTypes.DOUBLE,
         defaultValue: 0,

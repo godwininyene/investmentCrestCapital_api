@@ -2,7 +2,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('Investments', {
+    await queryInterface.createTable('CopyTradeInvestments', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -10,38 +10,42 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       userId: {
+        allowNull:false,
         type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
+         references: {
           model: "Users",
           key: "id",
         },
         onDelete: "CASCADE",
       },
-      planId: {
+      copyTradeId: {
+        allowNull:false,
         type: Sequelize.INTEGER,
-        allowNull: false,
         references: {
-          model: "Plans",
+          model: "CopyTrades",
           key: "id",
         },
         onDelete: "CASCADE",
       },
       amount: {
-        type: Sequelize.DOUBLE,
-        allowNull: false,
+        allowNull:false,
+        type: Sequelize.FLOAT
       },
-      profit: {
-        type: Sequelize.DOUBLE,
-        defaultValue: 0,
+      stopLoss: {
+        type: Sequelize.FLOAT,
+        allowNull: false, // Matches model validation
+        validate: {
+          min: 0, // Minimum 0%
+          max: 100, // Maximum 100%
+        },
       },
       status: {
-        type: Sequelize.ENUM("active", "completed", "failed"),
+        type: Sequelize.ENUM('pending', 'active', 'completed', 'cancelled'),
         defaultValue: "active",
       },
-      expiryDate: {
-        type: Sequelize.DATE,
-        allowNull: false,
+      profit: {
+        type: Sequelize.FLOAT,
+        defaultValue: 0,
       },
       createdAt: {
         allowNull: false,
@@ -54,6 +58,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('Investments');
+    await queryInterface.dropTable('CopyTradeInvestments');
   }
 };

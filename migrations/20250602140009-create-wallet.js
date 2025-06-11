@@ -15,6 +15,14 @@ module.exports = {
         type: Sequelize.DOUBLE,
         defaultValue: 0,
       },
+      copytradeProfit: {
+        type: Sequelize.DOUBLE,
+        defaultValue: 0,
+      },
+      copytradeBalance: {
+        type: Sequelize.DOUBLE,
+        defaultValue: 0,
+      },
       referralBalance: {
         type: Sequelize.DOUBLE,
         defaultValue: 0,

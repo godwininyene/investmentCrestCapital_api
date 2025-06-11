@@ -2,6 +2,7 @@ const express = require('express');
 const authController = require('./../controllers/authController');
 const userController = require('./../controllers/userController');
 const investmentRouter = require('./../routes/investmentRoutes');
+const copytradeInvestmentRouter = require('./../routes/copytradeInvestmentRoutes');
 const transactionRouter = require('./../routes/transactionRoutes');
 const banksRouter = require('./../routes/bankAccountRoutes')
 const walletController = require('./../controllers/walletController');
@@ -25,6 +26,7 @@ router.use(authController.protect);
 
 router.use('/me/transactions', transactionRouter);
 router.use('/me/investments', investmentRouter)
+router.use('/me/copy-trade-investments', copytradeInvestmentRouter)
 router.use('/me/banks', banksRouter)
 
 router.route('/updateMyPassword').patch( authController.updatePassword);
