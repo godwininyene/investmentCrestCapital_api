@@ -22,19 +22,19 @@ const compression = require('compression')
 const app = express();
 const{ sequelize, Plan} = require('./models')
 
-app.use('/', async(req, res, next)=>{
-    try {
-        // await sequelize.authenticate();
-        const plans = await Plan.findAll();
-        return res.status(200).json({message: 'Plans fetched', plans:plans})
-        // return res.status(200).json({message:'Connection has been established successfully.'})
-        // console.log('Connection has been established successfully.');
-    } catch (error) {
-        return res.status(500).json({message:'failed to fetch plans', errors:error})
-        // return res.status(500).json({message:'Unable to connect to the database:', error:error})
+// app.use('/', async(req, res, next)=>{
+//     try {
+//         // await sequelize.authenticate();
+//         const plans = await Plan.findAll();
+//         return res.status(200).json({message: 'Plans fetched', plans:plans})
+//         // return res.status(200).json({message:'Connection has been established successfully.'})
+//         // console.log('Connection has been established successfully.');
+//     } catch (error) {
+//         return res.status(500).json({message:'failed to fetch plans', errors:error})
+//         // return res.status(500).json({message:'Unable to connect to the database:', error:error})
        
-    }
-})
+//     }
+// })
 
 // Trust the first proxy
 app.set('trust proxy', 1);
