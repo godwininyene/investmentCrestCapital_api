@@ -4,7 +4,6 @@ html
     meta(name='viewport', content='width=device-width')
     meta(http-equiv='Content-Type', content='text/html; charset=UTF-8')
     title= subject
-
     include _style
   body
     table.body(role='presentation', border='0', cellpadding='0', cellspacing='0', style='width: 100%;')
@@ -23,19 +22,10 @@ html
                         tbody
                           tr
                             td
-                              // Global header with ICC circle and title
-                              .header
-                                table(style="margin: 0 auto;")
-                                  tr
-                                    td(style="text-align: center;")
-                                      // Circle with centered ICC
-                                      table(style='height: 56px; width: 56px; background-color: #1f156e; border-radius: 9999px; text-align: center; margin: 0 auto;')
-                                        tr
-                                          td(style='color: white; font-weight: bold; font-size: 14px; vertical-align: middle; text-align: center; line-height: 56px;')
-                                            | ICC
-                                      // Text below the circle
-                                      h2(style="color: #1f156e; font-weight: bold; font-size: 12px; margin: 8px 0 0;")
-                                        | InvestmentCrestCapital
+                              // Global header with logo and title
+                              .header(style="text-align: center; padding: 20px 0;")
+                                img(src="https://api.investmentcrestcapital.com/img/logo.jpg" alt="ICC Logo" style="height: 56px; width: auto; display: block; margin: 0 auto;")
+                                h2(style="color: #1f156e; font-weight: bold; font-size: 16px; margin: 8px 0 0;") InvestmentCrestCapital
 
                   // START MAIN AREA
                   tr
@@ -52,9 +42,9 @@ html
                 table(role='presentation', border='0', cellpadding='0', cellspacing='0', style='width: 100%;')
                   tbody
                     tr
-                      td.content-block
+                      td.content-block(style="text-align: center; padding: 20px; color: #999; font-size: 12px;")
                         span.apple-link InvestmentCrestCapital. 123 Blockchain Avenue, New York, USA.
                         br
-                        |  Don't like these emails? 
-                        a(href='#') Unsubscribe
-          //- td  
+                        | Don't like these emails? 
+                        a(href='#' style="color: #1f156e; text-decoration: none;") Unsubscribe
+          td
