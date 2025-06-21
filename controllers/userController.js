@@ -136,6 +136,7 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
 
 exports.getAllUsers = catchAsync(async (req, res, next) => {
   const users = await User.findAll({
+    order: [['createdAt', 'DESC']], 
     where: {
       role: {
         [Op.ne]: 'admin' // Exclude users with role 'admin'

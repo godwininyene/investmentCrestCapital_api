@@ -90,6 +90,7 @@ exports.getAllInvestments = catchAsync(async (req, res, next) => {
 
     const investments = await Investment.findAll({
         where: whereClause,
+        order: [['createdAt', 'DESC']], 
         include: req.user.role === 'admin' ? [{
             model: User,
             as:'user',

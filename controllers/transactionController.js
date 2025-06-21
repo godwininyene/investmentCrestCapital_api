@@ -121,6 +121,7 @@ exports.getAllTransactions = catchAsync(async (req, res, next) => {
     // Build the query options
     const queryOptions = {
         where: whereCondition,
+        order: [['createdAt', 'DESC']],
     };
 
     // If admin, include user details
@@ -128,8 +129,8 @@ exports.getAllTransactions = catchAsync(async (req, res, next) => {
         queryOptions.include = [
             {
                 model: User,
-                as:'user',
-                attributes: ['firstName','lastName', 'photo', 'email'],
+                as: 'user',
+                attributes: ['firstName', 'lastName', 'photo', 'email'],
             },
         ];
     }
@@ -144,6 +145,7 @@ exports.getAllTransactions = catchAsync(async (req, res, next) => {
         },
     });
 });
+
 
 
 exports.getRecentTransactions = catchAsync(async (req, res, next) => {

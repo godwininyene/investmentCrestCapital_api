@@ -83,6 +83,7 @@ exports.getAllCopyTradeInvestments = catchAsync(async (req, res, next) => {
     // 2) Fetch investments with conditional includes
     const investments = await CopyTradeInvestment.findAll({
         where: whereClause,
+        order: [['createdAt', 'DESC']], 
         include: req.user.role === 'admin' 
             ? [
                 {
