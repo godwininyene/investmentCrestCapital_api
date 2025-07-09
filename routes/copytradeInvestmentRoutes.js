@@ -8,5 +8,10 @@ router.use(authController.protect);
 router.route('/')
 .post(authController.restrictTo('user'), copytradeInvestmentController.investInCopyTrade)
 .get(copytradeInvestmentController.getAllCopyTradeInvestments);
+router.patch(
+  '/:tradeId/stop',
+  authController.restrictTo('admin'),
+  copytradeInvestmentController.stopCopyTradeInvestment
+);
 
 module.exports = router;

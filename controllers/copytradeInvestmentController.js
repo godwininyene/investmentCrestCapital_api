@@ -1,7 +1,7 @@
 const AppError = require('../utils/apError');
 const catchAsync = require("../utils/catchAsync");
 const Email = require("../utils/email");
-const { CopyTradeInvestment, CopyTrade, User, Wallet } = require("../models");
+const { CopyTradeInvestment, CopyTrade, User, Wallet, sequelize } = require("../models");
 
 // User invests in a copy trade
 exports.investInCopyTrade = catchAsync(async (req, res, next) => {
@@ -132,4 +132,73 @@ exports.getCopyTradeInvestments = catchAsync(async (req, res, next) => {
     status: "success",
     data: { investments },
   });
+});
+
+// Stop a copy trade investment
+exports.stopCopyTradeInvestment = catchAsync(async (req, res, next) => {
+    const { tradeId } = req.params;
+
+    // 1) Find the investment
+    const investment = await CopyTradeInvestment.findOne({
+        where: { id: tradeId },
+        include: [
+            {
+                model: User,
+                as: 'user',
+                attributes: ['id']
+            },
+            {
+                model: CopyTrade,
+                as: 'copyTrade',
+                attributes: ['id']
+            }
+        ]
+    });
+
+    if (!investment) {
+        return next(new AppError('Trade not found','', 404));
+    }
+
+    // 2) Check if investment is already completed
+    if (investment.status === 'completed') {
+        return next(new AppError('This trade is already completed', '',400));
+    }
+
+    // 3) Find the user's wallet
+    const wallet = await Wallet.findOne({ 
+        where: { userId: investment.user.id } 
+    });
+
+    if (!wallet) {
+        return next(new AppError('User wallet not found','', 404));
+    }
+
+    // 4) Start transaction to ensure data consistency
+    const transaction = await sequelize.transaction();
+
+    try {
+        // 5) Update investment status to completed
+        investment.status = 'completed';
+        await investment.save({ transaction });
+
+        // 6) Credit user's wallet
+        wallet.copytradeBalance += investment.amount;
+        await wallet.save({ transaction });
+
+        // 7) Commit transaction if all operations succeed
+        await transaction.commit();
+
+        // 8) Send success response
+        res.status(200).json({
+            status: 'success',
+            message: 'Trade stopped successfully',
+            data: { investment }
+        });
+
+    } catch (error) {
+        // Rollback transaction if any error occurs
+        console.log(error)
+        await transaction.rollback();
+        return next(new AppError('Error stopping trade', 500));
+    }
 });
