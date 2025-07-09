@@ -104,7 +104,7 @@ exports.getAllInvestments = catchAsync(async (req, res, next) => {
         ] : [ {
             model: Plan,
             as:'plan',
-            attributes: ['id', 'name']
+            attributes: ['id', 'name', 'percentage']
             },
         ]
     });
